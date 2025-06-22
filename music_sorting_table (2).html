@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de tri musical</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid #eee;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 45px 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+
+        .filter-select {
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 70vh;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        th:hover {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            transform: translateY(-2px);
+        }
+
+        th.sortable::after {
+            content: ' ↕';
+            opacity: 0.5;
+            margin-left: 5px;
+        }
+
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+
+        tr:hover {
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.05), rgba(255, 107, 107, 0.05));
+            transform: translateX(5px);
+        }
+
+        .genre {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+        }
+
+        .genre.pop { background: linear-gradient(45deg, #ff6b6b, #feca57); }
+        .genre.dance { background: linear-gradient(45deg, #4facfe, #00f2fe); }
+        .genre.rock { background: linear-gradient(45deg, #667eea, #764ba2); }
+        .genre.indie { background: linear-gradient(45deg, #48cae4, #023e8a); }
+        .genre.hip-hop { background: linear-gradient(45deg, #f77f00, #fcbf49); }
+        .genre.r-b { background: linear-gradient(45deg, #d62d20, #ffa700); }
+        .genre.rap { background: linear-gradient(45deg, #2d3436, #636e72); }
+        .genre.reggaeton { background: linear-gradient(45deg, #00b894, #00cec9); }
+
+        .decade {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .energy {
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .energy.low { color: #74b9ff; }
+        .energy.medium { color: #fdcb6e; }
+        .energy.high { color: #e84393; }
+        .energy.very-high { color: #fd79a8; }
+
+        .stats {
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.8);
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            min-width: 120px;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8em; }
+            .controls { flex-direction: column; }
+            .search-box { min-width: 100%; }
+            table { font-size: 12px; }
+            th, td { padding: 8px 6px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Tableau de Tri Musical</h1>
+            <p>Explorez et triez votre collection de 17 titres selon différents critères</p>
+        </div>
+
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Rechercher un titre, artiste, genre...">
+                <span class="search-icon">🔍</span>
+            </div>
+            <select id="genreFilter" class="filter-select">
+                <option value="">Tous les genres</option>
+                <option value="Pop">Pop</option>
+                <option value="Dance">Dance</option>
+                <option value="Rock">Rock</option>
+                <option value="Indie">Indie</option>
+                <option value="Hip-Hop">Hip-Hop</option>
+                <option value="R&B">R&B</option>
+                <option value="Rap">Rap</option>
+                <option value="Reggaeton">Reggaeton</option>
+            </select>
+            <select id="decadeFilter" class="filter-select">
+                <option value="">Toutes les décennies</option>
+                <option value="1980s">1980s</option>
+                <option value="1990s">1990s</option>
+                <option value="2000s">2000s</option>
+                <option value="2010s">2010s</option>
+            </select>
+        </div>
+
+        <div class="table-container">
+            <table id="musicTable">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-column="title">Titre</th>
+                        <th class="sortable" data-column="artist">Artiste</th>
+                        <th class="sortable" data-column="genre">Genre</th>
+                        <th class="sortable" data-column="decade">Décennie</th>
+                        <th class="sortable" data-column="energy">Énergie</th>
+                        <th class="sortable" data-column="danceability">Dansabilité</th>
+                        <th class="sortable" data-column="mood">Ambiance</th>
+                    </tr>
+                </thead>
+                <tbody id="musicTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="totalTracks">17</div>
+                <div class="stat-label">Titres au total</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="visibleTracks">17</div>
+                <div class="stat-label">Titres affichés</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="genreCount">8</div>
+                <div class="stat-label">Genres différents</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="decadeSpan">4</div>
+                <div class="stat-label">Décennies</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const musicData = [
+            {
+                title: "Ain't Nobody",
+                artist: "Chaka Khan",
+                genre: "R&B",
+                decade: "1980s",
+                energy: "High",
+                danceability: 9,
+                mood: "Uplifting"
+            },
+            {
+                title: "American Boy",
+                artist: "Estelle ft. Kanye West",
+                genre: "Hip-Hop",
+                decade: "2000s",
+                energy: "Medium",
+                danceability: 7,
+                mood: "Confident"
+            },
+            {
+                title: "Boys Don't Cry",
+                artist: "The Cure",
+                genre: "Rock",
+                decade: "1980s",
+                energy: "Medium",
+                danceability: 4,
+                mood: "Melancholic"
+            },
+            {
+                title: "Brazil",
+                artist: "Declan McKenna",
+                genre: "Indie",
+                decade: "2010s",
+                energy: "High",
+                danceability: 6,
+                mood: "Energetic"
+            },
+            {
+                title: "Gimme! Gimme! Gimme!",
+                artist: "ABBA",
+                genre: "Pop",
+                decade: "1980s",
+                energy: "Very High",
+                danceability: 10,
+                mood: "Euphoric"
+            },
+            {
+                title: "Habits (Stay High)",
+                artist: "Tove Lo (Hippie Sabotage Remix)",
+                genre: "Dance",
+                decade: "2010s",
+                energy: "High",
+                danceability: 8,
+                mood: "Dark"
+            },
+            {
+                title: "How Deep Is Your Love",
+                artist: "Calvin Harris & Disciples",
+                genre: "Dance",
+                decade: "2010s",
+                energy: "High",
+                danceability: 9,
+                mood: "Romantic"
+            },
+            {
+                title: "I Gotta Feeling",
+                artist: "Black Eyed Peas",
+                genre: "Pop",
+                decade: "2000s",
+                energy: "Very High",
+                danceability: 10,
+                mood: "Euphoric"
+            },
+            {
+                title: "Lay All Your Love on Me",
+                artist: "ABBA",
+                genre: "Pop",
+                decade: "1980s",
+                energy: "High",
+                danceability: 9,
+                mood: "Passionate"
+            },
+            {
+                title: "Memories",
+                artist: "David Guetta ft. Kid Cudi",
+                genre: "Dance",
+                decade: "2010s",
+                energy: "High",
+                danceability: 8,
+                mood: "Nostalgic"
+            },
+            {
+                title: "Only Girl (In The World)",
+                artist: "Rihanna",
+                genre: "Pop",
+                decade: "2010s",
+                energy: "Very High",
+                danceability: 9,
+                mood: "Empowering"
+            },
+            {
+                title: "Paparazzi",
+                artist: "Lady Gaga",
+                genre: "Pop",
+                decade: "2000s",
+                energy: "High",
+                danceability: 8,
+                mood: "Dramatic"
+            },
+            {
+                title: "Wati by Night",
+                artist: "Sexion d'Assaut",
+                genre: "Rap",
+                decade: "2010s",
+                energy: "High",
+                danceability: 7,
+                mood: "Aggressive"
+            },
+            {
+                title: "Smooth Operator",
+                artist: "Sade",
+                genre: "R&B",
+                decade: "1980s",
+                energy: "Low",
+                danceability: 5,
+                mood: "Smooth"
+            },
+            {
+                title: "Sunflower",
+                artist: "Post Malone & Swae Lee",
+                genre: "Hip-Hop",
+                decade: "2010s",
+                energy: "Medium",
+                danceability: 6,
+                mood: "Chill"
+            },
+            {
+                title: "Would I Lie To You",
+                artist: "Charles & Eddie",
+                genre: "R&B",
+                decade: "1990s",
+                energy: "Medium",
+                danceability: 6,
+                mood: "Soulful"
+            },
+            {
+                title: "Yo Voy",
+                artist: "Zion & Lennox ft. Daddy Yankee",
+                genre: "Reggaeton",
+                decade: "2000s",
+                energy: "Very High",
+                danceability: 10,
+                mood: "Party"
+            }
+        ];
+
+        let currentData = [...musicData];
+        let sortDirection = {};
+
+        function renderTable(data) {
+            const tbody = document.getElementById('musicTableBody');
+            tbody.innerHTML = '';
+
+            data.forEach(track => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${track.title}</strong></td>
+                    <td>${track.artist}</td>
+                    <td><span class="genre ${track.genre.toLowerCase().replace('&', '').replace(' ', '-')}">${track.genre}</span></td>
+                    <td><span class="decade">${track.decade}</span></td>
+                    <td class="energy ${track.energy.toLowerCase().replace(' ', '-')}">${track.energy}</td>
+                    <td>${track.danceability}/10</td>
+                    <td>${track.mood}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('visibleTracks').textContent = data.length;
+        }
+
+        function sortTable(column) {
+            const direction = sortDirection[column] === 'asc' ? 'desc' : 'asc';
+            sortDirection = {};
+            sortDirection[column] = direction;
+
+            currentData.sort((a, b) => {
+                let aVal = a[column];
+                let bVal = b[column];
+
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+
+                if (direction === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+
+            updateSortHeaders(column, direction);
+            renderTable(currentData);
+        }
+
+        function updateSortHeaders(activeColumn, direction) {
+            document.querySelectorAll('th').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.dataset.column === activeColumn) {
+                    th.classList.add(`sort-${direction}`);
+                }
+            });
+        }
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const genreFilter = document.getElementById('genreFilter').value;
+            const decadeFilter = document.getElementById('decadeFilter').value;
+
+            currentData = musicData.filter(track => {
+                const matchesSearch = !searchTerm || 
+                    track.title.toLowerCase().includes(searchTerm) ||
+                    track.artist.toLowerCase().includes(searchTerm) ||
+                    track.genre.toLowerCase().includes(searchTerm) ||
+                    track.mood.toLowerCase().includes(searchTerm);
+
+                const matchesGenre = !genreFilter || track.genre === genreFilter;
+                const matchesDecade = !decadeFilter || track.decade === decadeFilter;
+
+                return matchesSearch && matchesGenre && matchesDecade;
+            });
+
+            renderTable(currentData);
+        }
+
+        // Event listeners
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                sortTable(th.dataset.column);
+            });
+        });
+
+        document.getElementById('searchInput').addEventListener('input', filterTable);
+        document.getElementById('genreFilter').addEventListener('change', filterTable);
+        document.getElementById('decadeFilter').addEventListener('change', filterTable);
+
+        // Initialize
+        renderTable(musicData);
+    </script>
+</body>
+</html>
